@@ -76,15 +76,11 @@ if [[ "$CLEANUP_CHOICE" =~ ^[Yy]$ ]]; then
   pm2 delete nextjs-app 2>/dev/null || true
 
   echo "Removing existing Nginx configurations..."
-  if [[ -n "$DOMAIN" ]]; then
-    sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-    sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
-  fi
+  sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+  sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
 
   echo "Removing existing SSL certificates..."
-  if [[ -n "$DOMAIN" ]]; then
-    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
-  fi
+  sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
 
   echo "Removing existing application directory..."
   cd ..
@@ -238,4 +234,4 @@ echo "  If the site doesn't load, wait a few minutes for DNS propagation"
 echo "  Check logs: pm2 logs nextjs-app"
 echo "  Check Nginx: sudo nginx -t"
 echo ""
-echo "Your deployment is ready!!"
+echo "Your deployment is ready!"
