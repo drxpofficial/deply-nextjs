@@ -60,27 +60,6 @@ fi
 
 read -p "Enter domain name (e.g. example.com): " DOMAIN
 
-echo "============================================"
-echo "Cleaning up previous deployments..."
-echo "============================================"
-
-echo "Stopping and removing existing PM2 processes..."
-pm2 stop nextjs-app 2>/dev/null || true
-pm2 delete nextjs-app 2>/dev/null || true
-
-echo "Removing existing Nginx configurations..."
-sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
-
-echo "Removing existing SSL certificates..."
-sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
-
-echo "Removing existing application directory..."
-cd ..
-rm -rf next-app 2>/dev/null || true
-
-echo "Cleanup complete!"
-echo "============================================"
 read -p "Choose project source: [1] GitHub Repo, [2] Local Folder, [3] New Next.js App: " SOURCE
 
 if [[ "$SOURCE" == "1" ]]; then
