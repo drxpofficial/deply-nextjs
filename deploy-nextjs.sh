@@ -43,12 +43,16 @@ if [[ "$ACTION" == "2" ]]; then
   pm2 delete nextjs-app 2>/dev/null || true
   
   echo "Removing Nginx configuration..."
-  sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-  sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
-  sudo nginx -t && sudo systemctl reload nginx
+  if [[ -n "$DOMAIN" ]]; then
+    sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+    sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
+    sudo nginx -t && sudo systemctl reload nginx
+  fi
   
   echo "Removing SSL certificates..."
-  sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+  if [[ -n "$DOMAIN" ]]; then
+    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+  fi
   
   echo "Removing application directory..."
   cd ..
@@ -60,27 +64,38 @@ fi
 
 read -p "Enter domain name (e.g. example.com): " DOMAIN
 
-echo "============================================"
-echo "Cleaning up previous deployments..."
-echo "============================================"
+read -p "Do you want to clean up any previous deployments for this domain? [y/N]: " CLEANUP_CHOICE
 
-echo "Stopping and removing existing PM2 processes..."
-pm2 stop nextjs-app 2>/dev/null || true
-pm2 delete nextjs-app 2>/dev/null || true
+if [[ "$CLEANUP_CHOICE" =~ ^[Yy]$ ]]; then
+  echo "============================================"
+  echo "Cleaning up previous deployments..."
+  echo "============================================"
 
-echo "Removing existing Nginx configurations..."
-sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
+  echo "Stopping and removing existing PM2 processes..."
+  pm2 stop nextjs-app 2>/dev/null || true
+  pm2 delete nextjs-app 2>/dev/null || true
 
-echo "Removing existing SSL certificates..."
-sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+  echo "Removing existing Nginx configurations..."
+  if [[ -n "$DOMAIN" ]]; then
+    sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+    sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
+  fi
 
-echo "Removing existing application directory..."
-cd ..
-rm -rf next-app 2>/dev/null || true
+  echo "Removing existing SSL certificates..."
+  if [[ -n "$DOMAIN" ]]; then
+    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+  fi
 
-echo "Cleanup complete!"
-echo "============================================"
+  echo "Removing existing application directory..."
+  cd ..
+  rm -rf next-app 2>/dev/null || true
+
+  echo "Cleanup complete!"
+  echo "============================================"
+else
+  echo "Skipping cleanup of previous deployments..."
+  echo "============================================"
+fi
 read -p "Choose project source: [1] GitHub Repo, [2] Local Folder, [3] New Next.js App: " SOURCE
 
 if [[ "$SOURCE" == "1" ]]; then
