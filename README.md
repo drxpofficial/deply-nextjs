@@ -1,6 +1,6 @@
 # Next.js Production Deployment Script
 
-Automated deployment script for Next.js applications with SSL, Nginx, PM2, and firewall configuration.
+Automated deployment script for Next.js applications.
 
 ## Quick Start
 
@@ -13,10 +13,6 @@ curl -fsSL https://raw.githubusercontent.com/drxpofficial/deply-nextjs/main/depl
 
 - **One-command deployment** from GitHub, local folder, or new Next.js app
 - **Automatic SSL** setup with Let's Encrypt
-- **Nginx reverse proxy** configuration
-- **PM2 process management** with auto-startup
-- **UFW firewall** setup
-- **Clean deployment** with automatic cleanup
 
 ## Usage
 
@@ -26,23 +22,3 @@ curl -fsSL https://raw.githubusercontent.com/drxpofficial/deply-nextjs/main/depl
 4. Select project source (GitHub/Local/New)
 5. Wait for deployment
 
-## Prerequisites
-
-- Ubuntu/Debian server
-- Domain pointing to server
-- SSH with sudo access
-
-## Management
-
-```bash
-pm2 status          # Check app status
-pm2 logs nextjs-app # View logs
-pm2 restart nextjs-app # Restart app
-```
-
-## Uninstall
-
-```bash
-./deploy-nextjs.sh
-# Choose [2] Uninstall
-``` 
