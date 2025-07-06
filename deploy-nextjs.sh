@@ -3,10 +3,10 @@
 set -e
 
 echo "============================================"
-echo "Next.js Production Deployment Script"
+echo "Deployment Script"
 echo "============================================"
 
-if [[ ! -f "/tmp/nextjs_deploy_first_run_complete" ]]; then
+if [[ ! -f "/tmp/drxps_first_run_complete" ]]; then
   clear
   echo "============================================"
   echo "First-time setup detected..."
@@ -23,7 +23,7 @@ if [[ ! -f "/tmp/nextjs_deploy_first_run_complete" ]]; then
   sudo systemctl enable ufw
   
   echo "Creating first run marker..."
-  touch /tmp/nextjs_deploy_first_run_complete
+  touch /tmp/drxps_first_run_complete
   
   echo "First-time setup complete!"
   echo "============================================"
@@ -33,7 +33,7 @@ read -p "Choose action: [1] Deploy, [2] Uninstall: " ACTION
 
 if [[ "$ACTION" == "2" ]]; then
   echo "============================================"
-  echo "Uninstalling Next.js Application"
+  echo "Uninstalling Application"
   echo "============================================"
   
   read -p "Enter domain name to uninstall (e.g. example.com): " DOMAIN
