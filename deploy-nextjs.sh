@@ -59,7 +59,6 @@ if [[ "$ACTION" == "2" ]]; then
 fi
 
 read -p "Enter domain name (e.g. example.com): " DOMAIN
-
 read -p "Choose project source: [1] GitHub Repo, [2] Local Folder, [3] New Next.js App: " SOURCE
 
 if [[ "$SOURCE" == "1" ]]; then
@@ -197,7 +196,7 @@ echo "  pm2 logs nextjs-app - View app logs"
 echo "  pm2 restart nextjs-app - Restart the app"
 echo "  pm2 monit           - Monitor resources"
 echo ""
-echo "🔧 Troubleshooting:"
+echo "Troubleshooting:"
 echo "  If the site doesn't load, wait a few minutes for DNS propagation"
 echo "  Check logs: pm2 logs nextjs-app"
 echo "  Check Nginx: sudo nginx -t"
