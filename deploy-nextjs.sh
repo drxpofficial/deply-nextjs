@@ -29,32 +29,26 @@ if [[ ! -f "/tmp/nextjs_deploy_first_run_complete" ]]; then
   echo "============================================"
 fi
 
-echo "Choose action: [1] Deploy, [2] Uninstall"
-read -p "Enter your choice (1 or 2): " ACTION
+read -p "Choose action: [1] Deploy, [2] Uninstall: " ACTION
 
 if [[ "$ACTION" == "2" ]]; then
   echo "============================================"
   echo "Uninstalling Next.js Application"
   echo "============================================"
   
-  echo "Enter the domain name to uninstall (e.g. example.com)"
-  read -p "Domain: " DOMAIN
+  read -p "Enter domain name to uninstall (e.g. example.com): " DOMAIN
   
   echo "Stopping PM2 process..."
   pm2 stop nextjs-app 2>/dev/null || true
   pm2 delete nextjs-app 2>/dev/null || true
   
   echo "Removing Nginx configuration..."
-  if [[ -n "$DOMAIN" ]]; then
-    sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
-    sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
-    sudo nginx -t && sudo systemctl reload nginx
-  fi
+  sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+  sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
+  sudo nginx -t && sudo systemctl reload nginx
   
   echo "Removing SSL certificates..."
-  if [[ -n "$DOMAIN" ]]; then
-    sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
-  fi
+  sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
   
   echo "Removing application directory..."
   cd ..
@@ -64,30 +58,44 @@ if [[ "$ACTION" == "2" ]]; then
   exit 0
 fi
 
-echo "Enter your domain name (e.g. example.com)"
-read -p "Domain: " DOMAIN
-echo "Choose project source:"
-echo "[1] GitHub Repo"
-echo "[2] Local Folder" 
-echo "[3] New Next.js App"
-read -p "Enter your choice (1, 2, or 3): " SOURCE
+read -p "Enter domain name (e.g. example.com): " DOMAIN
+
+echo "============================================"
+echo "Cleaning up previous deployments..."
+echo "============================================"
+
+echo "Stopping and removing existing PM2 processes..."
+pm2 stop nextjs-app 2>/dev/null || true
+pm2 delete nextjs-app 2>/dev/null || true
+
+echo "Removing existing Nginx configurations..."
+sudo rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+sudo rm -f "/etc/nginx/sites-available/$DOMAIN"
+
+echo "Removing existing SSL certificates..."
+sudo certbot delete --cert-name "$DOMAIN" --non-interactive 2>/dev/null || true
+
+echo "Removing existing application directory..."
+cd ..
+rm -rf next-app 2>/dev/null || true
+
+echo "Cleanup complete!"
+echo "============================================"
+read -p "Choose project source: [1] GitHub Repo, [2] Local Folder, [3] New Next.js App: " SOURCE
 
 if [[ "$SOURCE" == "1" ]]; then
-  echo "Enter your GitHub repository URL"
-  read -p "Repo URL: " REPO_URL
+  read -p "GitHub repo URL: " REPO_URL
   git clone "$REPO_URL"
   APP_DIR=$(basename "$REPO_URL" .git)
   cd "$APP_DIR"
 elif [[ "$SOURCE" == "2" ]]; then
-  echo "Enter the full path to your local project folder"
-  read -p "Local path: " LOCAL_PATH
+  read -p "Full path to your local project folder: " LOCAL_PATH
   APP_DIR="next-app"
   mkdir "$APP_DIR"
   cp -r "$LOCAL_PATH"/* "$APP_DIR"/
   cd "$APP_DIR"
 elif [[ "$SOURCE" == "3" ]]; then
-  echo "Enter a name for your new Next.js project"
-  read -p "Project name: " APP_DIR
+  read -p "New project name: " APP_DIR
   npx create-next-app@latest "$APP_DIR" --typescript --eslint --tailwind --app --src-dir --import-alias "@/*"
   cd "$APP_DIR"
 else
