@@ -1,56 +1,117 @@
 #!/bin/bash
 
 # ============================================
-# Deployment Script v2.0
+# Deployment Script v2.0 - Enhanced UI
 # ============================================
 
 set -e
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+GRAY='\033[0;90m'
 NC='\033[0m'
 BOLD='\033[1m'
+DIM='\033[2m'
+
+BOX_HORIZ="═"
+BOX_VERT="║"
+BOX_TL="╔"
+BOX_TR="╗"
+BOX_BL="╚"
+BOX_BR="╝"
+BOX_TJ="╦"
+BOX_BJ="╩"
+BOX_LJ="╠"
+BOX_RJ="╣"
 
 print_header() {
-    echo -e "${CYAN}${BOLD}============================================${NC}"
-    echo -e "${CYAN}${BOLD}$1${NC}"
-    echo -e "${CYAN}${BOLD}============================================${NC}"
+    local title="$1"
+    local width=60
+    local padding=$((($width - ${#title} - 2) / 2))
+    
+    echo ""
+    echo -e "${CYAN}${BOLD}${BOX_TL}$(printf '%*s' $width | tr ' ' ${BOX_HORIZ})${BOX_TR}${NC}"
+    printf "${CYAN}${BOLD}${BOX_VERT}${NC}%*s${CYAN}${BOLD}%s${NC}%*s${CYAN}${BOLD}${BOX_VERT}${NC}\n" $padding "" "$title" $(($width - $padding - ${#title})) ""
+    echo -e "${CYAN}${BOLD}${BOX_BL}$(printf '%*s' $width | tr ' ' ${BOX_HORIZ})${BOX_BR}${NC}"
+    echo ""
 }
 
 print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+    echo -e "  ${GREEN}${BOLD}✓${NC} ${GREEN}$1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}✗${NC} $1"
+    echo -e "  ${RED}${BOLD}✗${NC} ${RED}$1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "  ${YELLOW}${BOLD}⚠${NC} ${YELLOW}$1${NC}"
 }
 
 print_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
+    echo -e "  ${BLUE}${BOLD}ℹ${NC} ${BLUE}$1${NC}"
 }
 
 print_step() {
-    echo -e "${MAGENTA}→${NC} $1"
+    echo -e "  ${MAGENTA}${BOLD}→${NC} ${WHITE}$1${NC}"
+}
+
+print_box() {
+    local text="$1"
+    local color="${2:-CYAN}"
+    local width=58
+    
+    echo -e "${!color}${BOX_LJ}$(printf '%*s' $width | tr ' ' ${BOX_HORIZ})${BOX_RJ}${NC}"
+    printf "${!color}${BOX_VERT}${NC}  %-${width}s  ${!color}${BOX_VERT}${NC}\n" "$text"
+    echo -e "${!color}${BOX_BL}$(printf '%*s' $width | tr ' ' ${BOX_HORIZ})${BOX_BR}${NC}"
+}
+
+print_progress_bar() {
+    local current=$1
+    local total=$2
+    local width=40
+    local percent=$((current * 100 / total))
+    local filled=$((current * width / total))
+    local empty=$((width - filled))
+    
+    printf "\r  ${CYAN}[${NC}"
+    printf "${GREEN}%*s${NC}" $filled | tr ' ' '█'
+    printf "${GRAY}%*s${NC}" $empty | tr ' ' '░'
+    printf "${CYAN}]${NC} ${BOLD}%3d%%${NC}" $percent
+    if [ $current -eq $total ]; then
+        echo ""
+    fi
 }
 
 show_progress() {
     local pid=$1
     local message=$2
-    local spin='-\|/'
+    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local i=0
     while kill -0 $pid 2>/dev/null; do
-        i=$(( (i+1) %4 ))
-        printf "\r${BLUE}${spin:$i:1}${NC} $message"
+        i=$(( (i+1) %10 ))
+        printf "\r  ${CYAN}${spin:$i:1}${NC} ${DIM}$message${NC}"
         sleep 0.1
     done
-    printf "\r"
+    printf "\r  ${GREEN}✓${NC} $message\n"
+}
+
+show_spinner() {
+    local message="$1"
+    local pid=$!
+    local spin='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    while kill -0 $pid 2>/dev/null; do
+        i=$(( (i+1) %10 ))
+        printf "\r  ${CYAN}${spin:$i:1}${NC} ${DIM}$message${NC}"
+        sleep 0.1
+    done
+    printf "\r  ${GREEN}✓${NC} $message\n"
 }
 
 validate_domain() {
@@ -71,12 +132,17 @@ first_time_setup() {
         clear
         print_header "First-time Setup"
         
+        echo -e "${CYAN}${BOLD}  Initializing system...${NC}"
+        echo ""
+        
         print_step "Updating system packages..."
-        sudo apt update && sudo apt upgrade -y
+        (sudo apt update && sudo apt upgrade -y) > /dev/null 2>&1 &
+        show_progress $! "Updating package lists"
         
         print_step "Installing essential system packages..."
-        sudo apt install -y curl wget git unzip software-properties-common \
-            apt-transport-https ca-certificates gnupg lsb-release
+        (sudo apt install -y curl wget git unzip software-properties-common \
+            apt-transport-https ca-certificates gnupg lsb-release) > /dev/null 2>&1 &
+        show_progress $! "Installing packages"
         
         print_step "Setting up system services..."
         sudo systemctl enable nginx 2>/dev/null || true
@@ -85,23 +151,38 @@ first_time_setup() {
         touch /tmp/drxps_first_run_complete
         print_success "First-time setup complete!"
         echo ""
+        sleep 1
     fi
 }
 
 show_menu() {
     clear
-    print_header "Next.js Deployment Manager"
-    echo -e "${BOLD}Choose an action:${NC}"
     echo ""
-    echo -e "  ${GREEN}[1]${NC} Deploy New Application"
-    echo -e "  ${GREEN}[2]${NC} Update Existing Application"
-    echo -e "  ${GREEN}[3]${NC} Check Application Status"
-    echo -e "  ${GREEN}[4]${NC} View Application Logs"
-    echo -e "  ${GREEN}[5]${NC} Restart Application"
-    echo -e "  ${GREEN}[6]${NC} Uninstall Application"
-    echo -e "  ${RED}[0]${NC} Exit"
+    echo -e "${CYAN}${BOLD}"
+    echo "  ███╗   ██╗███████╗██╗  ██╗████████╗    ██████╗ ███████╗██████╗ ██╗      ██████╗ ██╗    ██╗"
+    echo "  ████╗  ██║██╔════╝╚██╗██╔╝╚══██╔══╝    ██╔══██╗██╔════╝██╔══██╗██║     ██╔═══██╗██║    ██║"
+    echo "  ██╔██╗ ██║█████╗   ╚███╔╝    ██║       ██║  ██║█████╗  ██████╔╝██║     ██║   ██║██║ █╗ ██║"
+    echo "  ██║╚██╗██║██╔══╝   ██╔██╗    ██║       ██║  ██║██╔══╝  ██╔═══╝ ██║     ██║   ██║██║███╗██║"
+    echo "  ██║ ╚████║███████╗██╔╝ ██╗   ██║       ██████╔╝███████╗██║     ███████╗╚██████╔╝╚███╔███╔╝"
+    echo "  ╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝   ╚═╝       ╚═════╝ ╚══════╝╚═╝     ╚══════╝ ╚═════╝  ╚══╝╚══╝"
+    echo -e "${NC}"
+    print_header "Deployment Manager by Drxp"
+    
+    echo -e "${WHITE}${BOLD}  Choose an action:${NC}"
     echo ""
-    read -p "$(echo -e ${CYAN}Enter choice [0-6]:${NC} ) " ACTION
+    echo -e "${CYAN}${BOX_LJ}$(printf '%*s' 58 | tr ' ' ${BOX_HORIZ})${BOX_RJ}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[1]${NC} ${WHITE}Deploy New Application${NC}                    ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[2]${NC} ${WHITE}Update Existing Application${NC}              ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[3]${NC} ${WHITE}Check Application Status${NC}                 ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[4]${NC} ${WHITE}View Application Logs${NC}                   ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[5]${NC} ${WHITE}Restart Application${NC}                      ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}${BOLD}[6]${NC} ${WHITE}Uninstall Application${NC}                    ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${RED}${BOLD}[0]${NC} ${WHITE}Exit${NC}                                     ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_BL}$(printf '%*s' 58 | tr ' ' ${BOX_HORIZ})${BOX_BR}${NC}"
+    echo ""
+    echo -ne "${CYAN}${BOLD}  Enter choice [0-6]:${NC} ${WHITE}"
+    read ACTION
+    echo -ne "${NC}"
 }
 
 get_pm2_name() {
@@ -120,41 +201,74 @@ deploy_app() {
     
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
-    read -p "$(echo -e ${CYAN}Choose project source:${NC} [1] GitHub Repo, [2] Local Folder, [3] New Next.js App: ) " SOURCE
+    echo ""
+    echo -e "${WHITE}${BOLD}  Choose project source:${NC}"
+    echo -e "${CYAN}${BOX_LJ}$(printf '%*s' 58 | tr ' ' ${BOX_HORIZ})${BOX_RJ}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}[1]${NC} ${WHITE}GitHub Repository${NC}                        ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}[2]${NC} ${WHITE}Local Folder${NC}                            ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_VERT}${NC}  ${GREEN}[3]${NC} ${WHITE}New Next.js App${NC}                         ${CYAN}${BOX_VERT}${NC}"
+    echo -e "${CYAN}${BOX_BL}$(printf '%*s' 58 | tr ' ' ${BOX_HORIZ})${BOX_BR}${NC}"
+    echo ""
+    echo -ne "${CYAN}${BOLD}  Your choice [1-3]:${NC} ${WHITE}"
+    read SOURCE
+    echo -ne "${NC}"
     
     case $SOURCE in
         1)
-            read -p "$(echo -e ${CYAN}GitHub repo URL:${NC} ) " REPO_URL
+            echo ""
+            echo -ne "${CYAN}${BOLD}  GitHub repo URL:${NC} ${WHITE}"
+            read REPO_URL
+            echo -ne "${NC}"
             print_step "Cloning repository..."
-            git clone "$REPO_URL" || {
+            (git clone "$REPO_URL" 2>&1) | while IFS= read -r line; do
+                printf "\r  ${CYAN}⠋${NC} ${DIM}Cloning... $line${NC}"
+            done
+            if [ ${PIPESTATUS[0]} -ne 0 ]; then
+                echo ""
                 print_error "Failed to clone repository"
                 exit 1
-            }
+            fi
+            echo ""
             APP_DIR=$(basename "$REPO_URL" .git)
             cd "$APP_DIR"
+            print_success "Repository cloned: $APP_DIR"
             ;;
         2)
-            read -p "$(echo -e ${CYAN}Full path to your local project folder:${NC} ) " LOCAL_PATH
+            echo ""
+            echo -ne "${CYAN}${BOLD}  Full path to your local project folder:${NC} ${WHITE}"
+            read LOCAL_PATH
+            echo -ne "${NC}"
             if [[ ! -d "$LOCAL_PATH" ]]; then
                 print_error "Directory not found: $LOCAL_PATH"
                 exit 1
             fi
             APP_DIR="next-app-$(date +%s)"
+            print_step "Copying project files..."
             mkdir -p "$APP_DIR"
-            cp -r "$LOCAL_PATH"/* "$APP_DIR"/ 2>/dev/null || cp -r "$LOCAL_PATH"/. "$APP_DIR"/ 2>/dev/null
+            (cp -r "$LOCAL_PATH"/* "$APP_DIR"/ 2>/dev/null || cp -r "$LOCAL_PATH"/. "$APP_DIR"/ 2>/dev/null) &
+            show_progress $! "Copying files"
             cd "$APP_DIR"
+            print_success "Project copied: $APP_DIR"
             ;;
         3)
-            read -p "$(echo -e ${CYAN}New project name:${NC} ) " APP_DIR
+            echo ""
+            echo -ne "${CYAN}${BOLD}  New project name:${NC} ${WHITE}"
+            read APP_DIR
+            echo -ne "${NC}"
             print_step "Creating new Next.js app..."
-            npx create-next-app@latest "$APP_DIR" --typescript --eslint --tailwind --app --src-dir --import-alias "@/*" --yes
+            (npx create-next-app@latest "$APP_DIR" --typescript --eslint --tailwind --app --src-dir --import-alias "@/*" --yes 2>&1) | grep -v "npm WARN" | while IFS= read -r line; do
+                printf "\r  ${CYAN}⠋${NC} ${DIM}$line${NC}"
+            done
+            echo ""
             cd "$APP_DIR"
+            print_success "Next.js app created: $APP_DIR"
             ;;
         *)
             print_error "Invalid source choice"
             exit 1
             ;;
     esac
+    echo ""
     
     print_step "Checking system dependencies..."
     
@@ -223,7 +337,6 @@ server {
     listen 80;
     server_name $DOMAIN www.$DOMAIN;
 
-    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
@@ -309,7 +422,9 @@ EOL
 update_app() {
     print_header "Update Application"
     
-    read -p "$(echo -e ${CYAN}Enter domain name:${NC} ) " DOMAIN
+    echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
+    read DOMAIN
+    echo -ne "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if ! pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
@@ -342,7 +457,9 @@ update_app() {
 check_status() {
     print_header "Application Status"
     
-    read -p "$(echo -e ${CYAN}Enter domain name (or press Enter for all):${NC} ) " DOMAIN
+    echo -ne "${CYAN}${BOLD}  Enter domain name${NC} ${DIM}(or press Enter for all):${NC} ${WHITE}"
+    read DOMAIN
+    echo -ne "${NC}"
     
     if [[ -z "$DOMAIN" ]]; then
         pm2 list
@@ -355,7 +472,9 @@ check_status() {
 view_logs() {
     print_header "Application Logs"
     
-    read -p "$(echo -e ${CYAN}Enter domain name:${NC} ) " DOMAIN
+    echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
+    read DOMAIN
+    echo -ne "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
@@ -368,7 +487,9 @@ view_logs() {
 restart_app() {
     print_header "Restart Application"
     
-    read -p "$(echo -e ${CYAN}Enter domain name:${NC} ) " DOMAIN
+    echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
+    read DOMAIN
+    echo -ne "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if pm2 restart "$PM2_NAME"; then
@@ -456,7 +577,8 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "Invalid choice"
+                echo ""
+                print_error "Invalid choice. Please try again."
                 sleep 2
                 ;;
         esac
