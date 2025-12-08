@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+GITHUB_USER="drxpofficial"
+GITHUB_REPO="deply-nextjs"
+BRANCH="main"
+SCRIPT_URL="https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${BRANCH}/deploy-nextjs.sh"
+INSTALL_DIR="$HOME/.local/bin"
+SCRIPT_NAME="deploy-nextjs"
+
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+BOLD='\033[1m'
+
+echo -e "${CYAN}${BOLD}Installing deploy-nextjs...${NC}"
+
+mkdir -p "$INSTALL_DIR"
+
+curl -fsSL "$SCRIPT_URL" -o "$INSTALL_DIR/$SCRIPT_NAME"
+chmod +x "$INSTALL_DIR/$SCRIPT_NAME"
+
+if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+    if [[ "$SHELL" == *"zsh"* ]]; then
+        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$HOME/.zshrc"
+    elif [[ "$SHELL" == *"bash"* ]]; then
+        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$HOME/.bashrc"
+    fi
+fi
+
+echo -e "${GREEN}${BOLD}✓ Installed!${NC}"
+echo ""
+echo -e "Run: ${CYAN}${BOLD}deploy-nextjs${NC}"
+echo ""
+echo -e "If command not found, run: ${CYAN}source ~/.bashrc${NC} (or ${CYAN}source ~/.zshrc${NC})"
+echo ""
