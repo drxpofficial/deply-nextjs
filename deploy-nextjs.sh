@@ -1,9 +1,4 @@
 #!/bin/bash
-
-# ============================================
-# Deployment Script v2.0 - Enhanced UI
-# ============================================
-
 set -e
 
 RED='\033[0;31m'
@@ -217,8 +212,8 @@ deploy_app() {
         1)
             echo ""
             echo -ne "${CYAN}${BOLD}  GitHub repo URL:${NC} ${WHITE}"
-            read REPO_URL
-            echo -ne "${NC}"
+            read -r REPO_URL
+            echo -e "${NC}"
             print_step "Cloning repository..."
             (git clone "$REPO_URL" 2>&1) | while IFS= read -r line; do
                 printf "\r  ${CYAN}⠋${NC} ${DIM}Cloning... $line${NC}"
@@ -236,8 +231,8 @@ deploy_app() {
         2)
             echo ""
             echo -ne "${CYAN}${BOLD}  Full path to your local project folder:${NC} ${WHITE}"
-            read LOCAL_PATH
-            echo -ne "${NC}"
+            read -r LOCAL_PATH
+            echo -e "${NC}"
             if [[ ! -d "$LOCAL_PATH" ]]; then
                 print_error "Directory not found: $LOCAL_PATH"
                 exit 1
@@ -253,8 +248,8 @@ deploy_app() {
         3)
             echo ""
             echo -ne "${CYAN}${BOLD}  New project name:${NC} ${WHITE}"
-            read APP_DIR
-            echo -ne "${NC}"
+            read -r APP_DIR
+            echo -e "${NC}"
             print_step "Creating new Next.js app..."
             (npx create-next-app@latest "$APP_DIR" --typescript --eslint --tailwind --app --src-dir --import-alias "@/*" --yes 2>&1) | grep -v "npm WARN" | while IFS= read -r line; do
                 printf "\r  ${CYAN}⠋${NC} ${DIM}$line${NC}"
@@ -423,8 +418,8 @@ update_app() {
     print_header "Update Application"
     
     echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
-    read DOMAIN
-    echo -ne "${NC}"
+    read -r DOMAIN
+    echo -e "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if ! pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
@@ -458,8 +453,8 @@ check_status() {
     print_header "Application Status"
     
     echo -ne "${CYAN}${BOLD}  Enter domain name${NC} ${DIM}(or press Enter for all):${NC} ${WHITE}"
-    read DOMAIN
-    echo -ne "${NC}"
+    read -r DOMAIN
+    echo -e "${NC}"
     
     if [[ -z "$DOMAIN" ]]; then
         pm2 list
@@ -473,8 +468,8 @@ view_logs() {
     print_header "Application Logs"
     
     echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
-    read DOMAIN
-    echo -ne "${NC}"
+    read -r DOMAIN
+    echo -e "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
@@ -488,8 +483,8 @@ restart_app() {
     print_header "Restart Application"
     
     echo -ne "${CYAN}${BOLD}  Enter domain name:${NC} ${WHITE}"
-    read DOMAIN
-    echo -ne "${NC}"
+    read -r DOMAIN
+    echo -e "${NC}"
     PM2_NAME=$(get_pm2_name "$DOMAIN")
     
     if pm2 restart "$PM2_NAME"; then
@@ -531,7 +526,9 @@ uninstall_app() {
     
     print_step "Removing application directory..."
     if [[ -d "$APP_DIR" ]]; then
-        read -p "$(echo -e ${YELLOW}Remove application directory? [y/N]:${NC} ) " REMOVE_DIR
+        echo -ne "${YELLOW}${BOLD}  Remove application directory?${NC} ${DIM}[y/N]:${NC} ${WHITE}"
+        read -r REMOVE_DIR
+        echo -e "${NC}"
         if [[ "$REMOVE_DIR" =~ ^[Yy]$ ]]; then
             cd ..
             rm -rf "$APP_DIR" 2>/dev/null || true
@@ -547,32 +544,45 @@ main() {
     while true; do
         show_menu
         
-        case $ACTION in
+        case "$ACTION" in
             1)
                 deploy_app
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             2)
                 update_app
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             3)
                 check_status
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             4)
                 view_logs
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             5)
                 restart_app
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             6)
                 uninstall_app
-                read -p "$(echo -e ${CYAN}Press Enter to continue...${NC} ) "
+                echo ""
+                echo -ne "${CYAN}${BOLD}  Press Enter to continue...${NC} "
+                read -r
                 ;;
             0)
+                echo ""
                 print_info "Exiting..."
                 exit 0
                 ;;
